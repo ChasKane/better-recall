@@ -56,9 +56,9 @@ const buildOptions = {
   outfile: 'main.js',
   plugins: [
     copyFilesPlugin({
-      './main.js': `${obsidianExportPath}/main.js`,
-      './manifest.json': `${obsidianExportPath}/manifest.json`,
-      './src/styles.css': `${obsidianExportPath}/styles.css`,
+      // Only copy styles.css since main.js is already in place
+      // and manifest.json should never be overwritten
+      './src/styles.css': './styles.css',
     }),
   ],
 };
