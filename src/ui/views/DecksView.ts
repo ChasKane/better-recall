@@ -308,7 +308,7 @@ export class DecksView extends RecallSubView {
     const buttonsBarEl = this.rootEl.createDiv('better-recall-buttons-bar');
 
     new ButtonComponent(buttonsBarEl)
-      .setButtonText('Create Deck')
+      .setButtonText('Create deck')
       .onClick(this.openDeckModal.bind(this));
 
     new ButtonComponent(buttonsBarEl)

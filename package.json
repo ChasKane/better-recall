@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-better-recall",
-  "version": "0.0.3",
-  "description": "Add anki-like spaced repetition and recall to your vault.",
+  "name": "language-recall",
+  "version": "1.0.0",
+  "description": "Add anki-like spaced repetition and recall to your vault with built-in language translation.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -15,9 +15,9 @@
   "keywords": [],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FlorianWoelki/obsidian-better-recall.git"
+    "url": "git+https://github.com/ChasKane/language-recall.git"
   },
-  "author": "Florian Woelki",
+  "author": "Chas Kane",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^24.9.1",

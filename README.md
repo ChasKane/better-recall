@@ -2,16 +2,16 @@
 
 ![Preview Image](./docs/preview-image.png)
 
+> Author's note: This was forked from [Obsidian Better Recall](https://github.com/FlorianWoelki/obsidian-better-recall) so I could add the language translation feature so I wouldn't have to swap back and forth between Google Translate and Obsidian on my phone as I add/edit my language learning decks. Translation happens via free APIs, so no API key shenanigans ;)
 
 ## What is it?
 
-This plugin allows you to have an Anki-like feeling in Obsidian.
+This plugin allows you to have an Anki-like experience in Obsidian.
 It allows you to create decks and add cards, giving you the ultimate spaced repetition experience.
 
 The plugin integrates the following spaced-repetition algorithms:
 
 - [Anki algorithm](https://faqs.ankiweb.net/what-spaced-repetition-algorithm.html)
-
 
 ## How to use it
 
@@ -35,6 +35,7 @@ Based on the specific parameters, the different timings and multiplier will be a
 ## Development
 
 To customize this project for your needs, you can clone it and then install all dependencies:
+
 ```sh
 $ git clone https://github.com/FlorianWoelki/obsidian-better-recall
 $ cd obsidian-better-recall
