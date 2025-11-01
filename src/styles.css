@@ -240,6 +240,10 @@
   display: none;
 }
 
+.better-recall-input-no-resize {
+  resize: none;
+}
+
 .better-recall-review-card__answer-buttons-bar {
   flex-wrap: wrap;
   justify-content: center;

@@ -255,7 +255,7 @@ export abstract class CardModal extends Modal {
     const submitButtonInBar =
       this.buttonsBarComp.buttonsBarEl.querySelector('button:last-child');
     if (submitButtonInBar) {
-      (submitButtonInBar as HTMLElement).style.display = 'none';
+      (submitButtonInBar as HTMLElement).addClass('better-recall--display-none');
     }
 
     if (this.backFieldLabelContainer) {
@@ -279,7 +279,7 @@ export abstract class CardModal extends Modal {
       };
     } else {
       if (submitButtonInBar) {
-        (submitButtonInBar as HTMLElement).style.display = '';
+        (submitButtonInBar as HTMLElement).removeClass('better-recall--display-none');
         this.buttonsBarComp.onSubmit(this.submit.bind(this));
       }
     }

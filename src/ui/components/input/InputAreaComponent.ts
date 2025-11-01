@@ -17,7 +17,7 @@ export class InputAreaComponent extends TextAreaComponent {
   ) {
     super(contentEl);
     this.inputEl.rows = 5;
-    this.inputEl.style.resize = 'none';
+    this.inputEl.addClass('better-recall-input-no-resize');
     this.keyboardListener = new KeyboardListener(this.inputEl);
     this.render();
   }

@@ -1,3 +1,5 @@
+import { requestUrl } from 'obsidian';
+
 export interface TranslationOptions {
   sourceLanguage?: string;
   targetLanguage?: string;
@@ -17,27 +19,25 @@ async function tryTranslateWithVariations(
 
   for (const variation of variations) {
     try {
-      const response = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(variation)}&langpair=${sourceLanguage}|${targetLanguage}`
-      );
+      const response = await requestUrl({
+        url: `https://api.mymemory.translated.net/get?q=${encodeURIComponent(variation)}&langpair=${sourceLanguage}|${targetLanguage}`,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
+      const data = response.json;
+      
+      if (data.responseStatus === 200 && data.responseData?.translatedText) {
+        const translated = data.responseData.translatedText;
         
-        if (data.responseStatus === 200 && data.responseData?.translatedText) {
-          const translated = data.responseData.translatedText;
-          
-          if (translated.toLowerCase() !== variation.toLowerCase()) {
-            if (text.split(/\s+/).length === 1 && variation !== text) {
-              if (text === text.toLowerCase() && translated !== translated.toLowerCase()) {
-                return translated.toLowerCase();
-              }
-              if (text === text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()) {
-                return translated.charAt(0).toUpperCase() + translated.slice(1).toLowerCase();
-              }
+        if (translated.toLowerCase() !== variation.toLowerCase()) {
+          if (text.split(/\s+/).length === 1 && variation !== text) {
+            if (text === text.toLowerCase() && translated !== translated.toLowerCase()) {
+              return translated.toLowerCase();
             }
-            return translated;
+            if (text === text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()) {
+              return translated.charAt(0).toUpperCase() + translated.slice(1).toLowerCase();
+            }
           }
+          return translated;
         }
       }
     } catch (error) {
@@ -79,7 +79,8 @@ export async function translateText(
       formData.append('target', targetLanguage);
       formData.append('format', 'text');
 
-      const response = await fetch('https://libretranslate.com/translate', {
+      const response = await requestUrl({
+        url: 'https://libretranslate.com/translate',
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -87,16 +88,14 @@ export async function translateText(
         body: formData.toString(),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.error) {
-          continue;
-        }
+      const data = response.json;
+      
+      if (data.error) {
+        continue;
+      }
 
-        if (data.translatedText && data.translatedText.toLowerCase() !== variation.toLowerCase()) {
-          return data.translatedText;
-        }
+      if (data.translatedText && data.translatedText.toLowerCase() !== variation.toLowerCase()) {
+        return data.translatedText;
       }
     } catch (error) {
       continue;
