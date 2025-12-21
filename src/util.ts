@@ -22,8 +22,15 @@ export function formatTimeDifference(futureDate: Date): string {
     return `${months} ${months === 1 ? 'month' : 'months'}`;
   } else if (weeks > 0) {
     return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
-  } else if (days > 0) {
+  } else if (days >= 2) {
     return `${days} ${days === 1 ? 'day' : 'days'}`;
+  } else if (days === 1) {
+    // Show "1 day X hours" for better precision when distinguishing between options
+    const remainingHours = hours % 24;
+    if (remainingHours > 0) {
+      return `1 day ${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`;
+    }
+    return '1 day';
   } else if (hours > 0) {
     return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
   } else {

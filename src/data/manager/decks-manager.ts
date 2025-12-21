@@ -4,10 +4,12 @@ import {
   SpacedRepetitionItem,
 } from 'src/spaced-repetition';
 import BetterRecallPlugin from 'src/main';
+import { parseDeckFile, stringifyDeckFile } from '../deck-file';
 
 export class DecksManager {
   private decks: Record<string, Deck>;
   private algorithm: SpacedRepetitionAlgorithm<unknown>;
+  private deckFilePaths: Record<string, string> = {}; // deckId -> file path
 
   constructor(
     private plugin: BetterRecallPlugin,
@@ -17,18 +19,47 @@ export class DecksManager {
     this.algorithm = algorithm;
   }
 
-  public async load(): Promise<void> {
-    const decks = this.plugin.getData().decks;
-    if (!decks) {
-      return;
-    }
+  private getDecksFolder(): string {
+    return this.plugin.getSettings().decksFolderName || 'Language Recall';
+  }
 
-    decks.forEach((deck) => {
-      this.decks[deck.id] = jsonObjectToDeck(this.algorithm, deck);
-    });
+  public async load(): Promise<void> {
+    // Load all deck files from the decks folder
+    const decksFolder = this.getDecksFolder();
+
+    try {
+      // Ensure the folder exists
+      if (!(await this.plugin.app.vault.adapter.exists(decksFolder))) {
+        await this.plugin.app.vault.adapter.mkdir(decksFolder);
+        return;
+      }
+
+      // List all markdown files in the decks folder
+      const files = await this.plugin.app.vault.adapter.list(decksFolder);
+      const deckFiles = files.files.filter((f) => f.endsWith('.md'));
+
+      // Load each deck file
+      for (const filePath of deckFiles) {
+        try {
+          await this.loadDeckFromFile(filePath);
+        } catch (error) {
+          console.error(`Failed to load deck from ${filePath}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load decks:', error);
+    }
+  }
+
+  private async loadDeckFromFile(filePath: string): Promise<void> {
+    const content = await this.plugin.app.vault.adapter.read(filePath);
+    const deckJson = parseDeckFile(content);
+    this.decks[deckJson.id] = jsonObjectToDeck(this.algorithm, deckJson);
+    this.deckFilePaths[deckJson.id] = filePath;
   }
 
   public async create(deckName: string, description: string): Promise<Deck> {
+    console.log(`Creating deck: ${deckName}`);
     deckName = deckName.trim();
     if (!this.isValidFileName(deckName)) {
       throw new Error(`Invalid deck name: ${deckName}`);
@@ -40,8 +71,10 @@ export class DecksManager {
 
     const deckData = new Deck(this.algorithm, deckName, description);
     this.decks[deckData.id] = deckData;
+    console.log(`Deck created with ID: ${deckData.id}`);
 
-    await this.save();
+    // Create the deck file
+    await this.saveDeckToFile(deckData.id);
     return deckData;
   }
 
@@ -61,21 +94,25 @@ export class DecksManager {
 
     this.decks[id].setName(newName);
     this.decks[id].setDescription(newDescription);
-    await this.save();
+    await this.saveDeckToFile(id);
     return this.decks[id];
   }
 
-  public addCard(deckId: string, card: SpacedRepetitionItem): void {
+  public async addCard(
+    deckId: string,
+    card: SpacedRepetitionItem,
+  ): Promise<void> {
     if (!(deckId in this.decks)) {
       throw new Error(`No deck with id found: ${deckId}`);
     }
     this.decks[deckId].cards[card.id] = card;
+    await this.saveDeckToFile(deckId);
   }
 
-  public updateCardContent(
+  public async updateCardContent(
     deckId: string,
     updatedCard: SpacedRepetitionItem,
-  ): void {
+  ): Promise<void> {
     if (!(deckId in this.decks)) {
       throw new Error(`No deck with id found: ${deckId}`);
     }
@@ -85,9 +122,10 @@ export class DecksManager {
     }
 
     this.decks[deckId].cards[updatedCard.id] = updatedCard;
+    await this.saveDeckToFile(deckId);
   }
 
-  public removeCard(deckId: string, cardId: string): void {
+  public async removeCard(deckId: string, cardId: string): Promise<void> {
     if (!(deckId in this.decks)) {
       throw new Error(`No deck with id found: ${deckId}`);
     }
@@ -97,11 +135,133 @@ export class DecksManager {
     }
 
     delete this.decks[deckId].cards[cardId];
+    await this.saveDeckToFile(deckId);
   }
 
   public async save(): Promise<void> {
-    this.plugin.getData().decks = this.toJsonStructure();
-    await this.plugin.savePluginData();
+    // Save all decks to their respective files
+    for (const deckId of Object.keys(this.decks)) {
+      await this.saveDeckToFile(deckId);
+    }
+  }
+
+  public async saveDeckToFile(deckId: string): Promise<void> {
+    if (!(deckId in this.decks)) {
+      console.error(`Deck ${deckId} not found in decks`);
+      return;
+    }
+
+    try {
+      const deck = this.decks[deckId];
+      const deckJson = deck.toJsonObject();
+
+      // Update the updatedAt timestamp (use ISO string for consistency)
+      deckJson.updatedAt = new Date().toISOString();
+
+      const content = stringifyDeckFile(deckJson);
+      const filePath = this.getDeckFilePath(deckId, deck.getName());
+
+      console.log(`Saving deck to file: ${filePath}`);
+
+      // Ensure the decks folder exists
+      const decksFolder = this.getDecksFolder();
+      console.log(`Checking decks folder: ${decksFolder}`);
+
+      if (!(await this.plugin.app.vault.adapter.exists(decksFolder))) {
+        console.log(`Creating decks folder: ${decksFolder}`);
+        await this.plugin.app.vault.adapter.mkdir(decksFolder);
+      }
+
+      console.log(`Writing deck file: ${filePath}`);
+      await this.plugin.app.vault.adapter.write(filePath, content);
+      this.deckFilePaths[deckId] = filePath;
+      console.log(`Successfully saved deck to ${filePath}`);
+    } catch (error) {
+      console.error(`Failed to save deck ${deckId} to file:`, error);
+      throw error;
+    }
+  }
+
+  private getDeckFilePath(deckId: string, deckName: string): string {
+    // Use first 4 characters of deck ID as filename prefix to avoid conflicts with renamed decks
+    const shortId = deckId.substring(0, 4);
+    const sanitizedName = deckName.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
+    const decksFolder = this.getDecksFolder();
+    return `${decksFolder}/${shortId}-${sanitizedName}.md`;
+  }
+
+  /**
+   * Renames the decks folder. Moves all deck files from old folder to new folder.
+   */
+  public async renameDecksFolder(newFolderName: string): Promise<void> {
+    const oldFolder = this.getDecksFolder();
+    const newFolder = newFolderName.trim();
+
+    if (!newFolder) {
+      throw new Error('Folder name cannot be empty');
+    }
+
+    if (oldFolder === newFolder) {
+      return; // No change needed
+    }
+
+    // Check if old folder exists
+    if (!(await this.plugin.app.vault.adapter.exists(oldFolder))) {
+      // Old folder doesn't exist, just create the new one
+      await this.plugin.app.vault.adapter.mkdir(newFolder);
+      return;
+    }
+
+    // Get all files in the old folder
+    const files = await this.plugin.app.vault.adapter.list(oldFolder);
+    const deckFiles = files.files.filter((f) => f.endsWith('.md'));
+
+    // Create new folder
+    await this.plugin.app.vault.adapter.mkdir(newFolder);
+
+    // Move all deck files to new folder
+    for (const oldFilePath of deckFiles) {
+      const fileName = oldFilePath.split('/').pop() || '';
+      const newFilePath = `${newFolder}/${fileName}`;
+
+      // Read old file
+      const content = await this.plugin.app.vault.adapter.read(oldFilePath);
+      // Write to new location
+      await this.plugin.app.vault.adapter.write(newFilePath, content);
+      // Delete old file
+      await this.plugin.app.vault.adapter.remove(oldFilePath);
+
+      // Update file path in deckFilePaths
+      for (const [deckId, path] of Object.entries(this.deckFilePaths)) {
+        if (path === oldFilePath) {
+          this.deckFilePaths[deckId] = newFilePath;
+        }
+      }
+    }
+
+    // Remove old folder if it's empty
+    try {
+      const remainingFiles =
+        await this.plugin.app.vault.adapter.list(oldFolder);
+      if (
+        remainingFiles.files.length === 0 &&
+        remainingFiles.folders.length === 0
+      ) {
+        // Try to remove the folder - Obsidian's adapter may support this
+        // If it doesn't work, the folder will remain empty but that's okay
+        try {
+          await this.plugin.app.vault.adapter.rmdir(oldFolder, false);
+        } catch (rmdirError) {
+          // rmdir might not be available or might fail, that's okay
+          console.log(
+            `Could not remove old folder ${oldFolder}, it will remain empty`,
+          );
+        }
+      }
+    } catch (listError) {
+      // If we can't list the folder, we can't remove it safely
+      console.log(`Could not check old folder ${oldFolder} for removal`);
+    }
   }
 
   public async delete(id: string): Promise<void> {
@@ -109,8 +269,30 @@ export class DecksManager {
       throw new Error(`Deck name does not exist: ${id}`);
     }
 
+    // Delete the deck file
+    const filePath = this.deckFilePaths[id];
+    if (filePath && (await this.plugin.app.vault.adapter.exists(filePath))) {
+      await this.plugin.app.vault.adapter.remove(filePath);
+    }
+
     delete this.decks[id];
-    await this.save();
+    delete this.deckFilePaths[id];
+  }
+
+  /**
+   * Reloads a deck from its file. Useful when a deck is selected for use.
+   */
+  public async reloadDeck(deckId: string): Promise<void> {
+    if (!(deckId in this.decks)) {
+      throw new Error(`Deck with id does not exist: ${deckId}`);
+    }
+
+    const filePath = this.deckFilePaths[deckId];
+    if (!filePath) {
+      throw new Error(`No file path found for deck: ${deckId}`);
+    }
+
+    await this.loadDeckFromFile(filePath);
   }
 
   public get decksArray(): Deck[] {

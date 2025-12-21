@@ -1,4 +1,9 @@
-import { Setting, PluginSettingTab, TextComponent } from 'obsidian';
+import {
+  Setting,
+  PluginSettingTab,
+  TextComponent,
+  ButtonComponent,
+} from 'obsidian';
 import BetterRecallPlugin from 'src/main';
 import { ResetButtonComponent } from '../components/ResetButtonComponent';
 import { AnkiParameters, DEFAULT_SETTINGS } from 'src/settings/data';
@@ -65,6 +70,70 @@ export class SettingsTab extends PluginSettingTab {
 
   display() {
     this.containerEl.empty();
+
+    // Decks folder name setting (at the top)
+    let folderNameComponent: TextComponent | null = null;
+    const folderNameSetting = new Setting(this.containerEl)
+      .setName('Decks folder name')
+      .setDesc(
+        'The name of the folder where deck files are stored. Click "Save" to rename the folder and move all existing decks.',
+      );
+
+    // Warning about file names
+    const warningDesc = this.containerEl.createDiv();
+    warningDesc.addClass('setting-item-description');
+    warningDesc.style.color = 'var(--text-muted)';
+    warningDesc.style.fontStyle = 'italic';
+    warningDesc.style.marginTop = 'var(--size-2-1)';
+    warningDesc.style.marginBottom = 'var(--size-4-3)';
+    warningDesc.setText(
+      '⚠️ Please do not manually rename or move individual deck files. Only change the folder name using this setting. The plugin manages file names automatically.',
+    );
+
+    folderNameSetting.addText((text) => {
+      folderNameComponent = text;
+      const currentFolderName =
+        this.plugin.getSettings().decksFolderName ||
+        DEFAULT_SETTINGS.decksFolderName;
+      text.setValue(currentFolderName);
+      text.setPlaceholder('Language Recall');
+    });
+
+    folderNameSetting.addButton((button: ButtonComponent) => {
+      button.setButtonText('Save').setCta().onClick(async () => {
+        if (!folderNameComponent) {
+          return;
+        }
+
+        const newFolderName = folderNameComponent.getValue().trim();
+        if (!newFolderName) {
+          return;
+        }
+
+        try {
+          // Rename the folder and move all deck files
+          await this.plugin.decksManager.renameDecksFolder(newFolderName);
+          // Update the setting
+          this.plugin.setDecksFolderName(newFolderName);
+          await this.plugin.savePluginData();
+
+          // Show success message
+          button.setButtonText('Saved!');
+          setTimeout(() => {
+            button.setButtonText('Save');
+          }, 2000);
+        } catch (error) {
+          console.error('Failed to rename decks folder:', error);
+          button.setButtonText('Error');
+          setTimeout(() => {
+            button.setButtonText('Save');
+          }, 2000);
+        }
+      });
+    });
+
+    // Add a separator
+    this.containerEl.createEl('hr');
 
     Object.entries(this.titleParameterMapping).forEach(
       ([key, { parameter, description }]) => {

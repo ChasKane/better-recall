@@ -1,8 +1,5 @@
-import { DeckJsonStructure } from 'src/data/deck';
-
 export interface BetterRecallData {
   settings: BetterRecallSettings;
-  decks: DeckJsonStructure[];
 }
 
 export interface AnkiParameters {
@@ -69,6 +66,10 @@ export interface AnkiParameters {
 
 export interface BetterRecallSettings {
   ankiParameters: AnkiParameters;
+  decksFolderName: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  lastSelectedDeckId: string;
 }
 
 export const DEFAULT_SETTINGS: BetterRecallSettings = {
@@ -84,4 +85,8 @@ export const DEFAULT_SETTINGS: BetterRecallSettings = {
     learningSteps: [1, 10],
     relearningSteps: [10],
   },
+  decksFolderName: 'Language Recall',
+  sourceLanguage: 'en',
+  targetLanguage: 'es',
+  lastSelectedDeckId: '',
 };

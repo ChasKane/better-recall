@@ -39,7 +39,8 @@ export class AnkiAlgorithm extends SpacedRepetitionAlgorithm<AnkiParameters> {
           item.state === CardState.LEARNING ||
           item.state === CardState.RELEARNING
         ) {
-          item.stepIndex += 1;
+          // Reset to first step instead of advancing
+          item.stepIndex = 0;
         }
         return Math.max(
           item.interval * this.parameters.hardIntervalMultiplier,

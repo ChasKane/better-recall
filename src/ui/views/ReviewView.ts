@@ -42,8 +42,10 @@ export class ReviewView extends RecallSubView {
     this.vaultRootPath = plugin.app.vault.getRoot().path;
   }
 
-  public setDeck(deck: Deck): void {
-    this.deck = deck;
+  public async setDeck(deck: Deck): Promise<void> {
+    // Reload the deck from file to get the latest data
+    await this.plugin.decksManager.reloadDeck(deck.id);
+    this.deck = this.plugin.decksManager.getDecks()[deck.id];
     // Resets all the items for the algorithm to not have duplicated entries
     // when restarting the recall view.
     this.plugin.algorithm.resetItems();
@@ -71,11 +73,11 @@ export class ReviewView extends RecallSubView {
         // Handle again press.
         this.handleResponse(PerformanceResponse.AGAIN);
       } else if (event.key === '2') {
-        // Handle good press.
-        this.handleResponse(PerformanceResponse.GOOD);
-      } else if (event.key === '3') {
         // Handle hard press.
         this.handleResponse(PerformanceResponse.HARD);
+      } else if (event.key === '3') {
+        // Handle good press.
+        this.handleResponse(PerformanceResponse.GOOD);
       } else if (event.key === '4') {
         // Handle easy press.
         this.handleResponse(PerformanceResponse.EASY);
@@ -134,9 +136,9 @@ export class ReviewView extends RecallSubView {
 
     this.renderButton(PerformanceResponse.AGAIN, '❌', 'Again');
 
-    this.renderButton(PerformanceResponse.GOOD, '😬', 'Good');
-
     this.renderButton(PerformanceResponse.HARD, '😰', 'Hard');
+
+    this.renderButton(PerformanceResponse.GOOD, '😬', 'Good');
 
     this.renderButton(PerformanceResponse.EASY, '👑', 'Easy');
   }
@@ -229,9 +231,13 @@ export class ReviewView extends RecallSubView {
     }
   }
 
-  private handleResponse(response: PerformanceResponse): void {
+  private async handleResponse(response: PerformanceResponse): Promise<void> {
     if (this.currentItem) {
       this.plugin.algorithm.updateItemAfterReview(this.currentItem, response);
+      // Update the card in the deck
+      this.deck.cards[this.currentItem.id] = this.currentItem;
+      // Save the deck to file
+      await this.plugin.decksManager.saveDeckToFile(this.deck.id);
       this.showNextItem();
     }
   }
@@ -251,6 +257,6 @@ export class ReviewView extends RecallSubView {
         this.handleInternalLinkClick.bind(this),
       );
     });
-    this.plugin.decksManager.save();
+    // Cards are saved immediately after each review, so no need to save here
   }
 }

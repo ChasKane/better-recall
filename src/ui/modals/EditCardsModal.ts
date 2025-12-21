@@ -6,6 +6,8 @@ import { Deck } from 'src/data/deck';
 import { AddCardModal } from './card-modal/AddCardModal';
 import { EditCardModal } from './card-modal/EditCardModal';
 import { CARDS_LIST_EMPTY_DECK } from '../classes';
+import { CardState } from 'src/spaced-repetition';
+import { formatTimeDifference } from 'src/util';
 
 const cardAttributes = {
   cardId: 'data-card-id',
@@ -13,6 +15,7 @@ const cardAttributes = {
 
 export class EditCardsModal extends Modal {
   private buttonsBarComp: ButtonsBarComponent;
+  private showTimeUntilReview: boolean = false;
 
   constructor(
     private plugin: BetterRecallPlugin,
@@ -72,19 +75,64 @@ export class EditCardsModal extends Modal {
   }
 
   private render(): void {
+    // Render checkbox at the top
+    const checkboxContainer = this.contentEl.createDiv(
+      'better-recall-edit-cards-modal__checkbox-container',
+    );
+    const checkbox = checkboxContainer.createEl('input', {
+      type: 'checkbox',
+      attr: {
+        id: 'show-time-until-review',
+      },
+    });
+    checkbox.checked = this.showTimeUntilReview;
+    checkbox.onchange = (e) => {
+      this.showTimeUntilReview = (e.target as HTMLInputElement).checked;
+      this.contentEl.empty();
+      this.render();
+    };
+    const checkboxLabel = checkboxContainer.createEl('label', {
+      text: 'Show time until next review',
+      attr: {
+        for: 'show-time-until-review',
+      },
+    });
+    checkboxLabel.style.cursor = 'pointer';
+    checkboxLabel.style.marginLeft = 'var(--size-2-2)';
+
     const decksCardEl = this.contentEl.createDiv(
       'better-recall-card better-recall__cards-list',
     );
 
     if (this.deck.cardsArray.length > 0) {
       this.deck.cardsArray.forEach((card) => {
-        const cardEl = decksCardEl.createEl('div', {
-          text: `${card.content.front} :: ${card.content.back}`,
+        const cardContainer = decksCardEl.createEl('div', {
           attr: {
             [cardAttributes.cardId]: card.id,
           },
         });
-        cardEl.onClickEvent(() => {
+
+        const cardContent = cardContainer.createEl('div', {
+          text: `${card.content.front} :: ${card.content.back}`,
+        });
+
+        const statusOrTime = cardContainer.createEl('div', {
+          cls: 'better-recall-edit-cards-modal__status',
+        });
+
+        if (this.showTimeUntilReview) {
+          if (card.nextReviewDate) {
+            statusOrTime.setText(formatTimeDifference(card.nextReviewDate));
+          } else if (card.state === CardState.NEW) {
+            statusOrTime.setText('Due now');
+          } else {
+            statusOrTime.setText('No review date');
+          }
+        } else {
+          statusOrTime.setText(this.getCardStateLabel(card.state));
+        }
+
+        cardContainer.onClickEvent(() => {
           new EditCardModal(this.plugin, this.deck, card).open();
         });
       });
@@ -105,6 +153,21 @@ export class EditCardsModal extends Modal {
       .onClose(this.close.bind(this));
   }
 
+  private getCardStateLabel(state: CardState): string {
+    switch (state) {
+      case CardState.NEW:
+        return 'New';
+      case CardState.LEARNING:
+        return 'Learning';
+      case CardState.REVIEW:
+        return 'Review';
+      case CardState.RELEARNING:
+        return 'Relearning';
+      default:
+        return 'Unknown';
+    }
+  }
+
   private openAddCardModal(): void {
     new AddCardModal(this.plugin).open();
   }
@@ -118,7 +181,7 @@ export class EditCardsModal extends Modal {
     this.plugin
       .getEventEmitter()
       .off('deleteItem', this.handleDeleteItem.bind(this));
-    this.plugin.decksManager.save();
+    // Cards are saved immediately when added/updated/removed, so no need to save here
     this.contentEl.empty();
   }
 }

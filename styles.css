@@ -20,25 +20,24 @@
 
 .better-recall-back-field-container {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end;
+  justify-content: space-between;
   margin-top: var(--size-2-3);
   margin-bottom: var(--size-2-2);
   gap: var(--size-2-2);
   flex-wrap: wrap;
-  position: relative;
 }
 
 .better-recall-back-field-container .better-recall-back-field {
   margin-top: 0;
   margin-bottom: 0;
-  position: absolute;
-  left: 0;
+  flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .better-recall-back-field-container .better-recall-submit-button {
-  position: absolute;
-  right: 0;
+  flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .better-recall-translate-controls-container {
@@ -46,7 +45,9 @@
   flex-direction: column;
   align-items: center;
   gap: var(--size-2-2);
-  justify-content: center;
+  justify-content: flex-end;
+  flex: 1;
+  min-width: 0;
 }
 
 .better-recall-lang-dropdowns-row {
@@ -78,6 +79,23 @@
 .better-recall-lang-dropdown-container {
   display: flex;
   align-items: center;
+}
+
+.better-recall-lang-swap-container {
+  display: flex;
+  align-items: center;
+  margin: 0 var(--size-2-2);
+}
+
+.better-recall-lang-swap-button {
+  font-size: var(--font-ui-medium);
+  height: var(--input-height);
+  width: var(--input-height);
+  padding: 0;
+  min-width: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .better-recall-lang-dropdown {
@@ -304,4 +322,18 @@
   margin-top: var(--size-2-2);
   border: 1px solid var(--color-base-35);
   border-radius: var(--radius-s);
+}
+
+.better-recall-edit-cards-modal__checkbox-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--size-4-4);
+  padding: var(--size-2-2) 0;
+}
+
+.better-recall-edit-cards-modal__status {
+  font-size: var(--font-smallest);
+  color: var(--text-muted);
+  margin-top: var(--size-2-1);
+  font-weight: 500;
 }

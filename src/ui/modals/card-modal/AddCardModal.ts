@@ -23,11 +23,11 @@ export class AddCardModal extends CardModal {
     this.renderButtonsBar('Add');
   }
 
-  protected submit(): void {
+  protected async submit(): Promise<void> {
     const deckId = this.deckDropdownComp.getValue();
     const front = this.frontInputComp.getValue();
     const back = this.backInputComp.getValue();
-
+    void 0;
     this.frontInputComp.setValue('');
     this.backInputComp.setValue('');
 
@@ -45,7 +45,7 @@ export class AddCardModal extends CardModal {
       iteration: 0,
       stepIndex: 0,
     };
-    this.plugin.decksManager.addCard(deckId, card);
+    await this.plugin.decksManager.addCard(deckId, card);
     this.plugin
       .getEventEmitter()
       .emit('addItem', { deckId: deckId, item: card });

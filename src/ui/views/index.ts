@@ -85,8 +85,8 @@ export class RecallView extends FileView {
    * view mode and rerenders the current view.
    * @param deck The deck which will be reviewed.
    */
-  public startReviewingDeck(deck: Deck): void {
-    this.reviewView.setDeck(deck);
+  public async startReviewingDeck(deck: Deck): Promise<void> {
+    await this.reviewView.setDeck(deck);
     this.setViewMode(ViewMode.Review);
     this.renderView();
   }

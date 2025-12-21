@@ -98,6 +98,22 @@ export default class BetterRecallPlugin extends Plugin {
     }
   }
 
+  public setDecksFolderName(folderName: string): void {
+    this.getSettings().decksFolderName = folderName;
+  }
+
+  public setSourceLanguage(language: string): void {
+    this.getSettings().sourceLanguage = language;
+  }
+
+  public setTargetLanguage(language: string): void {
+    this.getSettings().targetLanguage = language;
+  }
+
+  public setLastSelectedDeckId(deckId: string): void {
+    this.getSettings().lastSelectedDeckId = deckId;
+  }
+
   public getData(): BetterRecallData {
     return this.data;
   }

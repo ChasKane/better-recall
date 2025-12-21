@@ -32,15 +32,15 @@ export class EditCardModal extends CardModal {
     this.renderButtonsBar('Save', { container: buttonsContainer });
   }
 
-  private deleteCard(): void {
-    this.plugin.decksManager.removeCard(this.deck.id, this.card.id);
+  private async deleteCard(): Promise<void> {
+    await this.plugin.decksManager.removeCard(this.deck.id, this.card.id);
     this.plugin
       .getEventEmitter()
       .emit('deleteItem', { deckId: this.deck.id, deletedItem: this.card });
     this.close();
   }
 
-  protected submit(): void {
+  protected async submit(): Promise<void> {
     const deckId = this.deckDropdownComp.getValue();
     const front = this.frontInputComp.getValue();
     const back = this.backInputComp.getValue();
@@ -57,12 +57,12 @@ export class EditCardModal extends CardModal {
     };
 
     if (deckId === this.deck.id) {
-      this.plugin.decksManager.updateCardContent(deckId, updatedCard);
+      await this.plugin.decksManager.updateCardContent(deckId, updatedCard);
     } else {
       // Remove the card from the old assigned deck.
-      this.plugin.decksManager.removeCard(deckId, updatedCard.id);
+      await this.plugin.decksManager.removeCard(this.deck.id, updatedCard.id);
       // Add card to the new assigned deck.
-      this.plugin.decksManager.addCard(deckId, updatedCard);
+      await this.plugin.decksManager.addCard(deckId, updatedCard);
     }
 
     this.plugin

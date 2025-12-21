@@ -8,6 +8,7 @@ import { ButtonsBarComponent } from 'src/ui/components/ButtonsBarComponent';
 import { InputAreaComponent } from 'src/ui/components/input/InputAreaComponent';
 import { cn } from 'src/util';
 import { translateText } from 'src/util/translation';
+import { DEFAULT_SETTINGS } from 'src/settings/data';
 
 export abstract class CardModal extends Modal {
   private optionsContainerEl: HTMLElement;
@@ -39,13 +40,13 @@ export abstract class CardModal extends Modal {
     this.frontInputComp.keyboardListener.cleanup();
     this.backInputComp.keyboardListener.cleanup();
     super.onClose();
-    this.plugin.decksManager.save();
+    // Cards are saved immediately when added/updated/removed, so no need to save here
     this.contentEl.empty();
   }
 
   protected abstract render(): void;
 
-  protected abstract submit(): void;
+  protected abstract submit(): void | Promise<void>;
 
   protected renderDeckDropdown(): void {
     const decks = Object.entries(this.plugin.decksManager.getDecks()).reduce<
@@ -62,7 +63,18 @@ export abstract class CardModal extends Modal {
     this.deckDropdownComp = new DropdownComponent(
       this.optionsContainerEl,
     ).addOptions(decks);
+
+    // Set to last selected deck if available and valid
+    const lastSelectedDeckId = this.plugin.getSettings().lastSelectedDeckId;
+    if (lastSelectedDeckId && decks[lastSelectedDeckId]) {
+      this.deckDropdownComp.setValue(lastSelectedDeckId);
+    }
+
     this.deckDropdownComp.selectEl.addClass('better-recall-field');
+    this.deckDropdownComp.onChange(async (value) => {
+      this.plugin.setLastSelectedDeckId(value);
+      await this.plugin.savePluginData();
+    });
   }
 
   protected renderCardTypeDropdown(): void {
@@ -150,22 +162,55 @@ export abstract class CardModal extends Modal {
     const sourceLangContainer = dropdownsRow.createDiv(
       'better-recall-lang-dropdown-container',
     );
+    const savedSourceLang =
+      this.plugin.getSettings().sourceLanguage ||
+      DEFAULT_SETTINGS.sourceLanguage;
     this.sourceLangDropdownComp = new DropdownComponent(sourceLangContainer)
       .addOptions(languageOptions)
-      .setValue('en');
+      .setValue(savedSourceLang);
     this.sourceLangDropdownComp.selectEl.addClass(
       'better-recall-lang-dropdown',
     );
+    this.sourceLangDropdownComp.onChange(async (value) => {
+      this.plugin.setSourceLanguage(value);
+      await this.plugin.savePluginData();
+    });
+
+    // Swap button container
+    const swapButtonContainer = dropdownsRow.createDiv(
+      'better-recall-lang-swap-container',
+    );
+    const swapButton = new ButtonComponent(swapButtonContainer)
+      .setButtonText('⇄')
+      .setTooltip('Swap languages')
+      .onClick(async () => {
+        const sourceValue = this.sourceLangDropdownComp?.getValue() || 'en';
+        const targetValue = this.targetLangDropdownComp?.getValue() || 'es';
+        this.sourceLangDropdownComp?.setValue(targetValue);
+        this.targetLangDropdownComp?.setValue(sourceValue);
+        // Save swapped values
+        this.plugin.setSourceLanguage(targetValue);
+        this.plugin.setTargetLanguage(sourceValue);
+        await this.plugin.savePluginData();
+      });
+    swapButton.buttonEl.addClass('better-recall-lang-swap-button');
 
     const targetLangContainer = dropdownsRow.createDiv(
       'better-recall-lang-dropdown-container',
     );
+    const savedTargetLang =
+      this.plugin.getSettings().targetLanguage ||
+      DEFAULT_SETTINGS.targetLanguage;
     this.targetLangDropdownComp = new DropdownComponent(targetLangContainer)
       .addOptions(languageOptions)
-      .setValue('es');
+      .setValue(savedTargetLang);
     this.targetLangDropdownComp.selectEl.addClass(
       'better-recall-lang-dropdown',
     );
+    this.targetLangDropdownComp.onChange(async (value) => {
+      this.plugin.setTargetLanguage(value);
+      await this.plugin.savePluginData();
+    });
 
     const translateButtonContainer = translateControlsContainer.createDiv(
       'better-recall-translate-button-container',
