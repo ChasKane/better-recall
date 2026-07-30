@@ -70,7 +70,7 @@ Use `gh` for GitHub tasks. When creating a PR, run status/diff/log and `git diff
 
 ```sh
 pnpm install
-pnpm dev      # watch build; needs env.mjs with obsidianExportPath
+pnpm dev      # watch build; copies into .obsidian/plugins/language-recall (env.mjs optional)
 pnpm build
 pnpm lint
 ```
